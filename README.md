@@ -41,3 +41,17 @@ Transfer repository ownership/access and Railway project membership to the next 
 ## Migration status
 
 This repository contains the portable application. The original Sites publication remains unchanged. Live mail setup, data import and owner testing must be verified before public launch.
+
+## Society notifications and chat
+
+Private conversations live at `/chat`. Existing question/reply records are copied into the new append-only history by migration 0008_notifications. The original records remain intact. Member APIs always select the authenticated user's records; committee access uses COMMITTEE_EMAILS.
+
+The header bell shows private event and chat notifications. First publication of an event creates one notification per non-declined member profile; editing or republishing does not resend. Drafts never send. Messages and decisions create private notifications. Emails contain a website link, without the private message text.
+
+A persistent mail queue is processed by `scripts/mail-worker.mjs` every 15 seconds and after relevant actions. Duplicate claims are guarded in SQLite. Uncertain deliveries are not automatically retried. Admin → Email setup shows delivery counts and can retry definite failures after correcting setup. Google sending quotas apply.
+
+**Required relay update:** replace Code.gs in the existing notifications Gmail project with `scripts/google-mail.gs` (also downloadable from Admin → Email setup), save and deploy a new version of the existing Web app deployment. Keep SITE_MAIL_TOKEN and the existing webhook URL. The relay must support `kind: notification`. Pending notifications will show Needs script update until this is done. After updating, use Send queued notifications.
+
+COMMITTEE_INBOX_EMAIL optionally changes the administrative notification destination; defaults to rhulua.notifications@gmail.com.
+
+Validation: `npm run check`, `npm test`, `npm run build`, and `node tests/community.integration.mjs` (local fake mail relay; no real emails).

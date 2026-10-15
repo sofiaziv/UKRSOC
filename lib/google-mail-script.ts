@@ -1,4 +1,4 @@
-export const googleMailScript = String.raw`// RHUL Ukrainian Society — approval confirmations only.
+export const googleMailScript = String.raw`// RHUL Ukrainian Society — sign-in, approval and society notifications.
 // Create this project while signed in as rhulua.notifications@gmail.com.
 // Project Settings > Script Properties: set SITE_MAIL_TOKEN to a long random secret.
 // Store the same secret as GMAIL_WEBHOOK_TOKEN in the Site environment settings.
@@ -15,6 +15,7 @@ function doPost(e) {
   var props = PropertiesService.getScriptProperties();
   var token = props.getProperty('SITE_MAIL_TOKEN');
   if (!token || token.length < 32 || data.token !== token) return jsonReply({status:'error',code:'unauthorized'});
+  if (data.kind === 'notification') return notificationMail(data,props);
   if (data.kind === 'signin') return signInMail(data,props);
   if (typeof data.requestId !== 'string' || !/^[a-f0-9]{64}$/.test(data.requestId) || typeof data.to !== 'string' || data.to.length > 254 || !/^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/.test(data.to) || typeof data.firstName !== 'string' || data.firstName.length > 100) return jsonReply({status:'error',code:'invalid_request'});
   var lock = LockService.getScriptLock();
@@ -28,7 +29,7 @@ function doPost(e) {
     props.setProperty(key,'sending');
     var name = data.firstName.replace(/[\r\n]/g,' ');
     var profile = 'https://rhul-ukrainian-society.frostyloach256.chatgpt.site/profile';
-    var allowedOrigin = props.getProperty('RAILWAY_SITE_ORIGIN');
+    var allowedOrigin = 'https://ukrsoc-web-production.up.railway.app';
     if (allowedOrigin && /^https:\/\/[a-z0-9-]+\.up\.railway\.app$/.test(allowedOrigin) && data.profileUrl === allowedOrigin+'/profile') profile=data.profileUrl;
     var subject = 'Your Ukrainian Society profile has been approved';
     var body = 'Hi '+name+',\n\nYour Ukrainian Society member profile has been approved! You can now open your profile and apply for our events.\n\nOpen my profile: '+profile+'\n\nEvent applications are reviewed separately.\n\nSee you soon,\nRHUL Ukrainian Society Committee';
@@ -59,5 +60,21 @@ function signInMail(data,props) {
       props.setProperty(key,'sent');return jsonReply({status:'sent'});
     } catch (_) {props.setProperty(key,'unknown');return jsonReply({status:'unknown'});}
   } finally {lock.releaseLock();}
+}
+
+function notificationMail(data,props) {
+  var origin='https://ukrsoc-web-production.up.railway.app';
+  if(typeof data.to!=='string'||data.to.length>254||! /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/.test(data.to)||typeof data.requestId!=='string'||! /^[a-f0-9]{64}$/.test(data.requestId)||typeof data.title!=='string'||data.title.length>250||typeof data.body!=='string'||data.body.length>3000||typeof data.url!=='string'||data.url.indexOf(origin+'/')!==0)return jsonReply({status:'error',code:'invalid_request'});
+  var lock=LockService.getScriptLock();if(!lock.tryLock(10000))return jsonReply({status:'error',code:'busy'});
+  try {
+    var key='notification_'+data.requestId,previous=props.getProperty(key);
+    if(previous==='sent')return jsonReply({status:'sent',duplicate:true});
+    if(previous)return jsonReply({status:'unknown'});
+    if(MailApp.getRemainingDailyQuota()<1)return jsonReply({status:'error',code:'quota'});
+    var esc=function(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');};
+    var html='<div style="background:#f5f2e7;padding:32px 16px;font-family:Arial,sans-serif;color:#18342d"><div style="max-width:520px;margin:auto;background:#fffdf5;padding:32px;border-radius:16px;border-top:4px solid #f0cc58"><p style="color:#3156bd;font-size:12px;letter-spacing:2px">RHUL UKRAINIAN SOCIETY</p><h1 style="font-family:Georgia,serif;font-weight:normal">'+esc(data.title)+'</h1><p style="line-height:1.8">'+esc(data.body)+'</p><p style="margin:32px 0"><a href="'+esc(data.url)+'" style="display:inline-block;background:#3156bd;padding:16px 24px;color:white;border-radius:9px;text-decoration:none;font-weight:bold">Open on the website &rarr;</a></p><p style="font-family:Georgia,serif;color:#3156bd">Rooted in Ukraine.<br>United at Royal Holloway.</p></div></div>';
+    props.setProperty(key,'sending');
+    try{MailApp.sendEmail({to:data.to,subject:data.title.replace(/[\r\n]/g,' '),body:data.body+'\n\n'+data.url,htmlBody:html,name:'RHUL Ukrainian Society',replyTo:'rhulua.notifications@gmail.com'});props.setProperty(key,'sent');return jsonReply({status:'sent'});}catch(_){props.setProperty(key,'unknown');return jsonReply({status:'unknown'});}
+  }finally{lock.releaseLock();}
 }
 `;

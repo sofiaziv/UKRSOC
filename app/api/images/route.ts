@@ -1,0 +1,6 @@
+import {getChatGPTUser} from '../../chatgpt-auth';
+import {mkdir,writeFile} from 'node:fs/promises';
+import path from 'node:path';
+import {dataDir} from '../../../scripts/database.mjs';
+import {sameOrigin} from '../../../lib/session';
+export async function POST(req:Request){const user=await getChatGPTUser();const admins=(process.env.COMMITTEE_EMAILS||'').toLowerCase().split(',').map(s=>s.trim());if(!user||!admins.includes(user.email.toLowerCase()))return Response.json({error:'Administrator access required'},{status:403});if(!sameOrigin(req))return new Response(null,{status:403});if(Number(req.headers.get('content-length'))>6*1024*1024)return Response.json({error:'Image must be smaller than 5 MB.'},{status:400});const f=await req.formData();const file=f.get('file');if(!(file instanceof File)||file.size>5*1024*1024||!['image/jpeg','image/png','image/webp'].includes(file.type))return Response.json({error:'Choose a PNG, JPEG or WebP image under 5 MB.'},{status:400});const key=crypto.randomUUID();const dir=path.join(dataDir,'uploads');await mkdir(dir,{recursive:true});await writeFile(path.join(dir,key),Buffer.from(await file.arrayBuffer()));await writeFile(path.join(dir,key+'.json'),JSON.stringify({contentType:file.type}));return Response.json({url:'/api/images/'+key});}

@@ -1,0 +1,1 @@
+ALTER TABLE `registrations` ADD `membership_confirmed` text DEFAULT 'no' NOT NULL;

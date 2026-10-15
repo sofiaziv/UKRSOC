@@ -1,0 +1,10 @@
+import {cookies} from 'next/headers';
+import {createHash,randomBytes} from 'node:crypto';
+import {rawDb} from '../scripts/database.mjs';
+export const cookieName='rhul_session';
+export const hash=(s:string)=>createHash('sha256').update(s).digest('hex');
+export function safeReturn(v:string|null){return v&&v.startsWith('/')&&!v.startsWith('//')&&!v.includes('\\')&&!/[\r\n]/.test(v)?v:'/profile';}
+export function readSession(token:string|undefined){if(!token||!/^[-a-zA-Z0-9_]{43}$/.test(token))return null;return rawDb().prepare('SELECT email FROM sessions WHERE token_hash=? AND expires>?').get(hash(token),Date.now()) as {email:string}|undefined;}
+export async function currentUser(){const s=readSession((await cookies()).get(cookieName)?.value);if(!s)return null;const db=rawDb();const prior=db.prepare('SELECT user_id FROM members WHERE lower(email)=? UNION SELECT user_id FROM messages WHERE lower(email)=? UNION SELECT user_id FROM involvement WHERE lower(email)=? LIMIT 1').get(s.email,s.email,s.email) as {user_id:string}|undefined;return {userId:prior?.user_id||'email:'+s.email,email:s.email,displayName:s.email,fullName:null};}
+export async function createSession(email:string){const token=randomBytes(32).toString('base64url');rawDb().prepare('INSERT INTO sessions VALUES(?,?,?)').run(hash(token),email,Date.now()+30*86400000);(await cookies()).set(cookieName,token,{httpOnly:true,secure:process.env.NODE_ENV==='production',sameSite:'lax',path:'/',maxAge:30*86400});}
+export function sameOrigin(req:Request){const origin=process.env.APP_URL||new URL(req.url).origin;return req.headers.get('origin')===origin;}

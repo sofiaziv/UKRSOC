@@ -72,7 +72,7 @@ a.social-card{cursor:pointer;position:relative;z-index:1}.social-card .social-ct
 
 /* Scroll-linked botanical illustration: no scroll interception or layout shifts. */
 .botanical-hero>.scroll-sunflower{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
-.sunflower-head{transform-origin:620px 435px;transform:rotate(calc((1 - var(--bloom))*-3deg))}
-.sunflower-petals{transform-origin:620px 435px;transform:scale(calc(.76 + var(--bloom)*.24)) rotate(calc((1 - var(--bloom))*var(--petal-offset)*4deg))}
-@media(max-width:760px){.sunflower-petals{transform:scale(calc(.86 + var(--bloom)*.14)) rotate(calc((1 - var(--bloom))*var(--petal-offset)*2deg))}}
+.sunflower-head{transform-origin:620px 435px;transform:rotate(calc((1 - var(--bloom))*-1deg))}
+.sunflower-petals{transform-origin:620px 435px;transform:scale(calc(.90 + var(--bloom)*.10))}
+@media(max-width:760px){.sunflower-petals{transform:scale(calc(.94 + var(--bloom)*.06))}}
 @media(prefers-reduced-motion:reduce){.sunflower-head,.sunflower-petals{transform:none!important}}

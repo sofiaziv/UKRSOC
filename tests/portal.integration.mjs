@@ -21,5 +21,22 @@ let like=await call('/api/articles',null,{action:'like',id:aid});assert.equal(li
 const articleMail=JSON.parse(db.prepare('SELECT article_payload FROM mail_queue WHERE newsletter_email IS NOT NULL').get().article_payload);const unsub=articleMail.unsubscribeUrl.split('unsubscribe=')[1];assert.equal((await call('/api/newsletter',null,{action:'unsubscribe',token:unsub})).status,200);assert.equal(db.prepare("SELECT active FROM newsletter_subscribers WHERE email='subscriber@example.com'").get().active,0);
 // Typed confirmation is mandatory, and deleting one user preserves all other records.
 assert.equal((await call('/api/members','admin@example.com',{action:'delete',userId:'email:two@example.com',confirmEmail:'wrong'})).status,400);assert.equal((await call('/api/members','admin@example.com',{action:'delete',userId:'email:two@example.com',confirmEmail:'two@example.com'})).status,200);assert.ok(db.prepare("SELECT user_id FROM members WHERE email='one@example.com'").get());assert.equal(db.prepare('SELECT count(*) n FROM events').get().n,1);assert.equal(db.prepare('SELECT count(*) n FROM chat_entries').get().n,2);assert.ok(db.prepare('SELECT id FROM articles WHERE id=?').get(aid));
+// Preview lowers privileges, never impersonates another account, and blocks mutations.
+assert.equal((await call('/api/member-preview','one@example.com',{active:true})).status,403);
+assert.equal((await call('/api/member-preview','admin@example.com')).j.eligible,true);
+const previewSwitch=await call('/api/member-preview','admin@example.com',{active:true});assert.equal(previewSwitch.status,200);
+const previewCookie='rhul_session='+tokens['admin@example.com']+'; '+previewSwitch.cookie.split(';')[0];
+assert.equal((await call('/api/member-preview',null,null,previewCookie)).j.active,true);
+const pv=await call('/api/community',null,null,previewCookie);assert.equal(pv.j.admin,false);assert.equal(pv.j.editor,false);assert.equal(pv.j.events.length,1);assert.equal(pv.j.attendees.length,0);assert.equal(pv.j.members.length,0);assert.equal(pv.j.messages.length,0);
+assert.equal((await call('/api/community?admin=1',null,null,previewCookie)).status,403);
+assert.equal((await call('/api/members',null,null,previewCookie)).status,403);
+assert.equal((await call('/api/mail-delivery',null,null,previewCookie)).status,403);
+assert.equal((await call('/api/chat?user=email%3Aone%40example.com',null,null,previewCookie)).j.entries.length,0);
+assert.equal((await call('/api/chat',null,{body:'Must not send'},previewCookie)).status,403);
+assert.equal((await call('/api/community',null,{action:'cancel-event',id:liveEvent.id},previewCookie)).status,403);
+assert.equal((await call('/api/notifications',null,null,previewCookie)).j.admin,false);
+assert.equal((await call('/api/member-preview',null,{active:false},previewCookie)).status,200);
+assert.equal((await call('/api/community','admin@example.com')).j.admin,true);
+const forged='rhul_session='+tokens['one@example.com']+'; '+previewSwitch.cookie.split(';')[0];assert.equal((await call('/api/member-preview',null,null,forged)).j.active,false);
 console.log('PASS: calendar exports and isolation, optional email preferences with essential mail preserved, delivery permissions; private calendar and posters, all membership roles, account controls, initiated chat/unread, anonymous engagement/moderation, opt-in/confirm/unsubscribe and first-publish-only newsletter.');
 }finally{server.kill('SIGTERM');relay.close();db.close();rmSync(dir,{recursive:true,force:true})}

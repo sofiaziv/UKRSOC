@@ -70,9 +70,8 @@ a.social-card{cursor:pointer;position:relative;z-index:1}.social-card .social-ct
 .stories-sort{white-space:nowrap}.stories-sort select{width:auto;flex:0 0 auto}
 @media(max-width:760px){.stories-tools{grid-template-columns:minmax(0,1fr);justify-content:stretch}.stories-search{width:100%;max-width:none}.stories-sort{justify-content:space-between}.stories-sort select{min-width:160px}}
 
-/* Scroll-linked botanical illustration: no scroll interception or layout shifts. */
-.botanical-hero>.scroll-sunflower{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
-.sunflower-head{transform-origin:620px 435px;transform:rotate(calc((1 - var(--bloom))*-1deg))}
-.sunflower-petals{transform-origin:620px 435px;transform:scale(calc(.90 + var(--bloom)*.10))}
-@media(max-width:760px){.sunflower-petals{transform:scale(calc(.94 + var(--bloom)*.06))}}
-@media(prefers-reduced-motion:reduce){.sunflower-head,.sunflower-petals{transform:none!important}}
+/* One intact botanical image; scroll transform is computed for Safari compatibility. */
+.botanical-hero>.scroll-sunflower{position:absolute;inset:0;width:100%;height:100%;transform-origin:50% 85%;transition:transform 180ms ease-out}
+.scroll-sunflower>img{display:block;width:100%;height:100%;object-fit:contain;transform-origin:50% 85%;animation:sunflower-breeze 7s ease-in-out infinite}
+@keyframes sunflower-breeze{0%,100%{transform:rotate(-.8deg)}50%{transform:rotate(.8deg)}}
+@media(prefers-reduced-motion:reduce){.botanical-hero>.scroll-sunflower{transform:none!important;transition:none}.scroll-sunflower>img{animation:none;transform:none}}

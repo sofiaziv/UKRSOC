@@ -1,24 +1,25 @@
 'use client';
 
-import {useEffect, useId, useRef} from 'react';
+import {useEffect, useRef} from 'react';
 
-/** Keep the original ink artwork, articulating its petals as separate SVG layers. */
+/** A single intact illustration: no masks, cropped petals or SVG seams. */
 export default function ScrollSunflower() {
-  const ref=useRef<SVGSVGElement>(null);
-  const id=useId().replace(/:/g,'');
+  const ref=useRef<HTMLDivElement>(null);
   useEffect(()=>{
-    const svg=ref.current;
-    const hero=svg?.closest('section');
-    if(!svg||!hero)return;
+    const flower=ref.current;
+    const hero=flower?.closest('section');
+    if(!flower||!hero)return;
     const motion=window.matchMedia('(prefers-reduced-motion: reduce)');
     let frame=0;
     const draw=()=>{
       frame=0;
+      if(motion.matches){flower.style.transform='none';return;}
       const bounds=hero.getBoundingClientRect();
       const range=Math.min(bounds.height*.65,window.innerHeight*.6);
-      const progress=motion.matches?1:Math.max(0,Math.min(1,-bounds.top/Math.max(1,range)));
-      const eased=progress*progress*(3-2*progress);
-      svg.style.setProperty('--bloom',String(eased));
+      const p=Math.max(0,Math.min(1,(window.innerHeight*.12-bounds.top)/Math.max(1,range)));
+      const eased=p*p*(3-2*p);
+      // Compute final numeric transforms in JS for consistent Safari support.
+      flower.style.transform=`translate3d(0,${8-16*eased}px,0) rotate(${-3+5*eased}deg) scale(${.94+.06*eased})`;
     };
     const schedule=()=>{if(!frame)frame=requestAnimationFrame(draw)};
     draw();
@@ -27,24 +28,5 @@ export default function ScrollSunflower() {
     motion.addEventListener('change',schedule);
     return()=>{cancelAnimationFrame(frame);window.removeEventListener('scroll',schedule);window.removeEventListener('resize',schedule);motion.removeEventListener('change',schedule)};
   },[]);
-  const cx=620,cy=435;
-  const outline="M 170 0 H 1024 V 930 L 680 930 L 530 850 L 465 765 L 430 660 L 400 575 L 310 510 L 210 430 Z";
-  const sectors=Array.from({length:16},(_,i)=>{
-    const a=(i*22.5-5)*Math.PI/180,b=(i*22.5+23)*Math.PI/180;
-    return `M ${cx} ${cy} L ${cx+610*Math.cos(a)} ${cy+610*Math.sin(a)} A 610 610 0 0 1 ${cx+610*Math.cos(b)} ${cy+610*Math.sin(b)} Z`;
-  });
-  return <svg ref={ref} className="scroll-sunflower" viewBox="0 0 1024 1536" role="img" aria-label="Ink-drawn sunflower gently opening as you scroll" style={{'--bloom':1} as React.CSSProperties}>
-    <defs>
-      <mask id={`${id}-stem`}><rect width="1024" height="1536" fill="white"/><path d={outline} fill="black"/></mask>
-      <clipPath id={`${id}-head`}><path d={outline}/></clipPath>
-      <clipPath id={`${id}-heart`}><ellipse cx="610" cy="438" rx="182" ry="218" transform="rotate(-30 610 438)"/></clipPath>
-      {sectors.map((d,i)=><clipPath key={i} id={`${id}-petal-${i}`}><path d={d}/></clipPath>)}
-    </defs>
-    <image href="/sunflower-ink.png" width="1024" height="1536" mask={`url(#${id}-stem)`}/>
-    <path d="M 438 895 C 423 820 378 745 400 650" fill="none" stroke="#423f34" strokeWidth="13"/><path d="M 438 895 C 423 820 378 745 400 650" fill="none" stroke="#d7d1bc" strokeWidth="8"/>
-    <g className="sunflower-head">
-      <g clipPath={`url(#${id}-head)`}>{sectors.map((_,i)=><g key={i} className="sunflower-petals" style={{'--petal-offset':`${i%2?1:-1}`} as React.CSSProperties}><image href="/sunflower-ink.png" width="1024" height="1536" clipPath={`url(#${id}-petal-${i})`}/></g>)}</g>
-      <image href="/sunflower-ink.png" width="1024" height="1536" clipPath={`url(#${id}-heart)`}/>
-    </g>
-  </svg>;
+  return <div ref={ref} className="scroll-sunflower"><img src="/sunflower-ink.png" width="1024" height="1536" alt="Botanical sunflower drawn in black ink" fetchPriority="high"/></div>;
 }

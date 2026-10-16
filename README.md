@@ -46,7 +46,7 @@ This repository contains the portable application. The original Sites publicatio
 
 Private conversations live at `/chat`. Existing question/reply records are copied into the new append-only history by migration 0008_notifications. The original records remain intact. Member APIs always select the authenticated user's records; committee access uses COMMITTEE_EMAILS.
 
-The header bell shows private event and chat notifications. First publication of an event creates one notification per non-declined member profile; editing or republishing does not resend. Drafts never send. Messages and decisions create private notifications. Emails contain a website link, without the private message text.
+The header bell shows private event and chat notifications. Event emails are sent only after the committee approves an event registration. Publishing a new event does not send participant emails. Date/time/venue edits and event cancellation notify only currently approved attendees. Confirmation emails include the event cover and details. Recipient eligibility is rechecked immediately before sending. Messages and decisions create private notifications. Emails contain a website link, without the private message text.
 
 A persistent mail queue is processed by `scripts/mail-worker.mjs` every 15 seconds and after relevant actions. Duplicate claims are guarded in SQLite. Uncertain deliveries are not automatically retried. Admin → Email setup shows delivery counts and can retry definite failures after correcting setup. Google sending quotas apply.
 

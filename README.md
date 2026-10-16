@@ -69,3 +69,11 @@ Articles support author names, safe Markdown formatting, embedded images, covers
 The relay source in `scripts/google-mail.gs` supports newsletter templates, unsubscribe buttons and inline private event covers. Deploy a new version of the existing Apps Script endpoint, preserving its account and token.
 
 Full isolated permission and feature checks: `node tests/portal.integration.mjs` and `node tests/community.integration.mjs`. These use disposable databases and a fake relay; they do not email real members. Run alongside `npm run check`, `npm test` and `npm run build`.
+
+## Usability and delivery controls
+
+Migration 0012 adds email preferences and notification categories without replacing records. Optional chat and society update emails can be disabled in My profile; in-app messages, membership decisions, sign-in and approved-attendee event changes remain available. The mail worker rechecks preferences at send time. Newsletter consent and confirmation remain separate.
+
+Calendar downloads at `/api/calendar?event=<id>` require both approved membership and a confirmed registration for that event. Cancelled/draft events and other members' registrations never unlock a download. Exports use escaped and folded UTF-8 iCalendar records.
+
+Admin now includes member status filters, event search and date/publication filters, explicit red/yellow/green event states, fixed action feedback and a simplified delivery view. The delivery API is admin-only and never returns secrets or message bodies. Only definite failures can be retried; uncertain deliveries require checking Gmail Sent. The supplied screenshot logo is cropped by a shared presentation component to show its original circular mark.

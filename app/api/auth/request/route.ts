@@ -6,6 +6,7 @@ export async function POST(req:Request){
  if(!sameOrigin(req))return Response.json({error:'Invalid request origin'},{status:403});
  const b=await req.json().catch(()=>null);const email=typeof b?.email==='string'?b.email.trim().toLowerCase():'';
  if(!/^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/.test(email)||email.length>254)return Response.json({error:'Enter a valid email address.'},{status:400});
+ if((rawDb().prepare('SELECT status FROM accounts WHERE lower(email)=?').get(email) as any)?.status==='deactivated')return Response.json({error:'Your account is deactivated. Please contact the committee.'},{status:403});
  const admins=(process.env.COMMITTEE_EMAILS||'').toLowerCase().split(',').map(s=>s.trim());
  if(process.env.PUBLIC_SITE!=='true'&&!admins.includes(email))return Response.json({error:'This preview is currently open to the committee only.'},{status:403});
  if(!process.env.GMAIL_WEBHOOK_TOKEN||!process.env.AUTH_SECRET||!process.env.GMAIL_WEBHOOK_URL)return Response.json({error:'Email sign-in is being connected. Please try again shortly.'},{status:503});

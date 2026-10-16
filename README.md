@@ -40,7 +40,7 @@ Transfer repository ownership/access and Railway project membership to the next 
 
 ## Migration status
 
-This repository contains the portable application. The original Sites publication remains unchanged. Live mail setup, data import and owner testing must be verified before public launch.
+This repository contains the portable application. The original Sites publication remains unchanged. The Railway service uses the existing persistent database and notification relay. The original Sites publication is separate from this deployment.
 
 ## Society notifications and chat
 
@@ -55,3 +55,17 @@ A persistent mail queue is processed by `scripts/mail-worker.mjs` every 15 secon
 COMMITTEE_INBOX_EMAIL optionally changes the administrative notification destination; defaults to rhulua.notifications@gmail.com.
 
 Validation: `npm run check`, `npm test`, `npm run build`, and `node tests/community.integration.mjs` (local fake mail relay; no real emails).
+
+## Member portal and private calendar
+
+Admin has Overview, Events, Members, Messages, Newsletter and Notifications sections. Membership approval and event attendance approval remain separate. Deactivation revokes sessions immediately. Permanent deletion requires the exact account email; committee administrator accounts are protected. Other members and society content remain intact.
+
+Events, registrations and uploaded event posters are server-protected for active approved members and administrators. Public responses contain no real calendar rows. Pending and declined accounts cannot retrieve event information or private images. Event cover attachments are embedded in approved attendee emails so image links do not expose the private calendar.
+
+Migration 0011 adds account status, chat read state, article reactions/comments and opt-in newsletter subscriptions without dropping existing data. Before pending migrations on an existing installation, startup creates a SQLite backup in `/data/backups`. Maintain external volume backups as well.
+
+Articles support author names, safe Markdown formatting, embedded images, covers, drafts and separate full article pages. Anonymous comments and likes use hashed visitor identifiers, rate limits, a honeypot and duplicate checks. Administrators can remove comments. Newsletter emails require explicit consent plus an emailed confirmation; users can unsubscribe. Existing members are not automatically subscribed. First publication queues a single email per confirmed subscriber. Drafts and subsequent edits do not resend it; pre-existing published articles are marked as already published during migration.
+
+The relay source in `scripts/google-mail.gs` supports newsletter templates, unsubscribe buttons and inline private event covers. Deploy a new version of the existing Apps Script endpoint, preserving its account and token.
+
+Full isolated permission and feature checks: `node tests/portal.integration.mjs` and `node tests/community.integration.mjs`. These use disposable databases and a fake relay; they do not email real members. Run alongside `npm run check`, `npm test` and `npm run build`.

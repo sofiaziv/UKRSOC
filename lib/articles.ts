@@ -1,0 +1,11 @@
+import {randomUUID,randomBytes,createHash} from 'node:crypto';
+import {rawDb} from '../scripts/database.mjs';
+export function excerpt(body:string){return body.replace(/!\[[^\]]*\]\([^)]*\)/g,'').replace(/[#*_`>]/g,'').slice(0,240);}
+export function articlePreviews(editor=false){return rawDb().prepare(`SELECT a.id,a.title,a.author,a.category,a.image,a.created,a.published_at AS publishedAt,a.publication,substr(a.body,1,350) AS preview,(SELECT count(*) FROM article_likes l WHERE l.article_id=a.id) AS likes,(SELECT count(*) FROM article_comments c WHERE c.article_id=a.id AND c.status='visible') AS comments FROM articles a ${editor?'':"WHERE a.publication='published'"} ORDER BY coalesce(a.published_at,a.created) DESC`).all().map((a:any)=>({...a,preview:excerpt(a.preview)}));}
+export function publishNewsletter(id:string){const db=rawDb();db.exec('BEGIN IMMEDIATE');try{const a=db.prepare("SELECT * FROM articles WHERE id=? AND publication='published'").get(id) as any;if(!a){db.exec('COMMIT');return;}const now=new Date().toISOString();db.prepare('UPDATE articles SET published_at=coalesce(published_at,?) WHERE id=?').run(now,id);if(!db.prepare('INSERT OR IGNORE INTO newsletter_publications VALUES(?)').run(id).changes){db.exec('COMMIT');return;}
+ const recipients=db.prepare('SELECT email FROM newsletter_subscribers WHERE active=1 AND confirmed_at IS NOT NULL').all() as any[];
+ for(const sub of recipients){const q=randomUUID(),manageToken=randomBytes(32).toString('hex'),digest=createHash('sha256').update(manageToken).digest('hex');db.prepare('INSERT INTO subscription_links(token_hash,email,kind,expires) VALUES(?,?,?,?)').run(digest,sub.email,'unsubscribe',Date.now()+366*86400000);
+ const article={title:a.title,author:a.author,image:a.image?.startsWith('/')?process.env.APP_URL+a.image:a.image||'',preview:excerpt(a.body),unsubscribeUrl:process.env.APP_URL+'/newsletter?unsubscribe='+manageToken};
+ db.prepare('INSERT INTO mail_queue(id,email,title,body,href,created,newsletter_email,article_payload) VALUES(?,?,?,?,?,?,?,?)').run(q,sub.email,'The Society Edit: '+a.title,'By '+a.author+'\n\n'+excerpt(a.body),'/articles/'+encodeURIComponent(a.id),now,sub.email,JSON.stringify(article));}
+ db.exec('COMMIT');}catch(e){db.exec('ROLLBACK');throw e}
+}

@@ -77,3 +77,23 @@ a.social-card{cursor:pointer;position:relative;z-index:1}.social-card .social-ct
 @media(prefers-reduced-motion:reduce){.botanical-hero>.scroll-sunflower{transform:none!important;transition:none}.scroll-sunflower>img{animation:none;transform:none}}
 
 .member-preview-bar{display:flex;align-items:center;gap:16px;padding:10px 5%;background:#203e32;color:#fff;font-size:13px;position:relative;z-index:60;flex-wrap:wrap}.member-preview-bar>div{display:flex;gap:16px;align-items:center;flex:1;flex-wrap:wrap}.member-preview-bar span{font-size:12px;opacity:.85}.member-preview-bar button{background:#f2d76b;color:#203e32;border:0;border-radius:7px;padding:9px 14px;font-weight:700;cursor:pointer}.member-preview-bar a{color:inherit;text-decoration:underline}.member-preview-bar.is-preview{background:#f6e7a9;color:#203e32}.member-preview-bar.is-preview button{background:#203e32;color:white}@media(max-width:600px){.member-preview-bar{padding:10px 16px;gap:8px}.member-preview-bar>div{display:grid;gap:3px}.member-preview-bar button{font-size:12px;padding:9px}.member-preview-bar>div span{max-width:210px}}
+
+/* Photo event cards: explicit layout avoids legacy thumbnail/date grid conflicts. */
+.rhythm-site .compact-events>.society-event-card{position:relative;isolation:isolate;overflow:hidden;display:grid;grid-template-columns:76px minmax(0,1fr) auto;align-items:start;gap:22px;padding:30px;border:1px solid #dce2d2;border-radius:18px;background:#f0f3e8;min-height:240px}
+.rhythm-site .society-event-card.has-photo{background:#615342;border-color:#d6c9b5}
+.society-event-card>.society-event-background{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;z-index:-2;display:block}
+.society-event-card.has-photo:after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(100deg,#142b2526,#142b2505)}
+.society-event-date{position:relative;display:grid;justify-items:center;gap:2px;padding:12px 8px;background:#fffdf5f5;color:#203e32;border-radius:11px;line-height:1.1;min-width:0;box-shadow:0 2px 12px #142b2512}
+.society-event-date b{font-size:30px}.society-event-date span{font-size:13px;text-transform:uppercase;letter-spacing:1px}
+.society-event-copy{min-width:0}.society-event-tags{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.rhythm-site .society-event-tags .pill{background:#fffdf5f5;color:#203e32;font-size:12px;padding:6px 10px}
+.rhythm-site .society-event-copy h3{margin:12px 0;line-height:1.45;font-size:25px}
+.society-event-copy h3 span,.society-event-description>span{background:#fffdf5f5;color:#203e32;box-decoration-break:clone;-webkit-box-decoration-break:clone;padding:4px 8px;border-radius:4px}
+.society-event-copy h3 .event-title{text-align:left;line-height:1.5;font:inherit}
+.rhythm-site .society-event-description{font-size:15px;line-height:1.95;margin:0 0 12px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;overflow-wrap:anywhere;max-width:650px}
+.rhythm-site .society-event-venue{margin:0;font-size:13px;line-height:1.7}
+.society-event-venue>span{display:inline-flex;flex-wrap:wrap;gap:5px;align-items:center;background:#fffdf5f5;color:#203e32;padding:5px 8px;border-radius:5px;overflow-wrap:anywhere;max-width:100%}
+.society-event-venue svg{flex-shrink:0}
+.rhythm-site .compact-events .society-event-action{position:relative;grid-column:3;margin:0;align-self:end;justify-self:end;white-space:normal;text-align:center;min-height:46px;font-size:14px;max-width:100%}
+@media(max-width:900px){.rhythm-site .compact-events>.society-event-card{grid-template-columns:64px minmax(0,1fr);gap:18px;padding:24px}.rhythm-site .compact-events .society-event-action{grid-column:2;justify-self:start}.rhythm-site .society-event-copy h3{font-size:23px}}
+@media(max-width:600px){.rhythm-site .compact-events>.society-event-card{grid-template-columns:minmax(0,1fr);gap:16px;padding:22px 18px;min-height:360px}.society-event-date{width:64px;justify-self:start;padding:10px 6px}.society-event-date b{font-size:26px}.society-event-date span{font-size:12px}.society-event-copy{grid-column:1;min-width:0}.rhythm-site .society-event-copy h3{font-size:23px;margin:10px 0}.rhythm-site .society-event-description{font-size:14px;line-height:1.95;-webkit-line-clamp:4}.rhythm-site .society-event-venue{font-size:12px}.rhythm-site .compact-events .society-event-action{grid-column:1;justify-self:stretch;width:100%;margin:0;min-height:46px;font-size:14px}.society-event-card>.society-event-background{object-position:center}}

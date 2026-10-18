@@ -45,6 +45,8 @@ assert.equal((await call('/api/community','one@example.com',reapply)).status,200
 assert.equal((await call('/api/community','admin@example.com',{action:'approve',id:signup.j.registration.id})).status,200);
 assert.equal((await call('/api/community','one@example.com',{action:'register',eventId:liveEvent.id,cancel:true})).status,200);
 cancelledPlace=(await call('/api/community?admin=1','admin@example.com')).j.attendees.find(r=>r.id===signup.j.registration.id);assert.equal(cancelledPlace.cancelledBy,'member');assert.equal(cancelledPlace.status,'cancelled');
+assert.ok(db.prepare("SELECT body FROM mail_queue WHERE title LIKE 'Cancellation:%' AND category='events'").get()?.body.includes('one@example.com'));
+
 assert.equal((await call('/api/community','one@example.com',reapply)).status,200);
 assert.equal((await call('/api/community','one@example.com')).j.registrations.find(r=>r.id===signup.j.registration.id).cancelledBy,'');
 // One application per email/event; guests consume capacity together with their host.

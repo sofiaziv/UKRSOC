@@ -5,6 +5,7 @@ async function call(path,email,body){const r=await fetch(base+path,{method:body?
 try{for(let i=0;i<60;i++){try{await fetch(base+'/api/health');break}catch{await new Promise(r=>setTimeout(r,300))}}
 assert.equal((await call('/api/chat')).status,401);
 assert.equal((await call('/api/chat','one@example.com',{body:'Private test',userId:'email:two@example.com'})).status,200);
+assert.ok(db.prepare("SELECT body FROM mail_queue WHERE email='office@example.com' AND body LIKE '%Private test%'").get()?.body.includes('one@example.com'));
 let a=await call('/api/chat?user=email:one@example.com','two@example.com');assert.equal(a.j.entries.length,0);assert.equal(a.j.threads.length,0);
 a=await call('/api/chat?user='+encodeURIComponent('email:one@example.com'),'admin@example.com');assert.equal(a.j.entries.length,1);assert.equal(a.j.threads.length,1);
 assert.equal((await call('/api/chat','admin@example.com',{userId:'email:one@example.com',body:'Committee response'})).status,200);

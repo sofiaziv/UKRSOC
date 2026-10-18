@@ -42,6 +42,22 @@ assert.equal((await call('/api/community','one@example.com',{action:'register',e
 cancelledPlace=(await call('/api/community?admin=1','admin@example.com')).j.attendees.find(r=>r.id===signup.j.registration.id);assert.equal(cancelledPlace.cancelledBy,'member');assert.equal(cancelledPlace.status,'cancelled');
 assert.equal((await call('/api/community','one@example.com',reapply)).status,200);
 assert.equal((await call('/api/community','one@example.com')).j.registrations.find(r=>r.id===signup.j.registration.id).cancelledBy,'');
+// One application per email/event; guests consume capacity together with their host.
+await call('/api/community','one@example.com',{action:'register',eventId:liveEvent.id,cancel:true});
+assert.equal((await call('/api/community','one@example.com',{...reapply,comingWithSomeone:'yes',guestCount:-1})).status,400);
+assert.equal((await call('/api/community','one@example.com',{...reapply,comingWithSomeone:'yes',guestCount:1.5})).status,400);
+assert.equal((await call('/api/community','one@example.com',{...reapply,comingWithSomeone:'yes',guestCount:21})).status,400);
+const party=await call('/api/community','one@example.com',{...reapply,comingWithSomeone:'yes',guestCount:2});assert.equal(party.status,200);assert.equal(party.j.registration.guestCount,2);
+const duplicate=await call('/api/community','one@example.com',{...reapply,comingWithSomeone:'yes',guestCount:8});assert.equal(duplicate.j.registration.id,party.j.registration.id);assert.equal(duplicate.j.registration.guestCount,2);
+assert.equal(db.prepare('SELECT count(*) n FROM registrations WHERE event_id=? AND lower(email)=?').get(liveEvent.id,'one@example.com').n,1);
+await call('/api/community','admin@example.com',{...event,action:'edit-event',id:liveEvent.id,capacity:2});
+assert.equal((await call('/api/community','admin@example.com',{action:'approve',id:party.j.registration.id})).status,409);
+await call('/api/community','admin@example.com',{...event,action:'edit-event',id:liveEvent.id,capacity:3});
+assert.equal((await call('/api/community','admin@example.com',{action:'approve',id:party.j.registration.id})).status,200);
+assert.equal((await call('/api/community','one@example.com')).j.registrations[0].status,'registered');
+assert.equal((await call('/api/community','one@example.com',reapply)).j.registration.status,'registered');
+assert.equal(db.prepare("SELECT sum(1+guest_count) n FROM registrations WHERE event_id=? AND status='registered'").get(liveEvent.id).n,3);
+assert.ok(db.prepare("SELECT body FROM mail_queue WHERE registration_id=? AND body LIKE '%2 guest(s)%'").get(party.j.registration.id));
 // Preview lowers privileges, never impersonates another account, and blocks mutations.
 assert.equal((await call('/api/member-preview','one@example.com',{active:true})).status,403);
 assert.equal((await call('/api/member-preview','admin@example.com')).j.eligible,true);

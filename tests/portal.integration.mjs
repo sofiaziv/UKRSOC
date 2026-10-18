@@ -28,6 +28,20 @@ let like=await call('/api/articles',null,{action:'like',id:aid});assert.equal(li
 const articleMail=JSON.parse(db.prepare('SELECT article_payload FROM mail_queue WHERE newsletter_email IS NOT NULL').get().article_payload);const unsub=articleMail.unsubscribeUrl.split('unsubscribe=')[1];assert.equal((await call('/api/newsletter',null,{action:'unsubscribe',token:unsub})).status,200);assert.equal(db.prepare("SELECT active FROM newsletter_subscribers WHERE email='subscriber@example.com'").get().active,0);
 // Typed confirmation is mandatory, and deleting one user preserves all other records.
 assert.equal((await call('/api/members','admin@example.com',{action:'delete',userId:'email:two@example.com',confirmEmail:'wrong'})).status,400);assert.equal((await call('/api/members','admin@example.com',{action:'delete',userId:'email:two@example.com',confirmEmail:'two@example.com'})).status,200);assert.ok(db.prepare("SELECT user_id FROM members WHERE email='one@example.com'").get());assert.equal(db.prepare('SELECT count(*) n FROM events').get().n,1);assert.equal(db.prepare('SELECT count(*) n FROM chat_entries').get().n,2);assert.ok(db.prepare('SELECT id FROM articles WHERE id=?').get(aid));
+// Attendee cancellation keeps the profile/history and releases a confirmed place.
+assert.equal((await call('/api/community','one@example.com',{action:'remove-attendee',id:signup.j.registration.id})).status,403);
+assert.equal((await call('/api/community','admin@example.com',{action:'remove-attendee',id:signup.j.registration.id})).status,200);
+let cancelledPlace=(await call('/api/community','one@example.com')).j.registrations.find(r=>r.id===signup.j.registration.id);assert.equal(cancelledPlace.status,'cancelled');assert.equal(cancelledPlace.cancelledBy,'committee');assert.equal(cancelledPlace.checkedIn,'no');
+assert.equal((await call('/api/community','admin@example.com',{action:'remove-attendee',id:signup.j.registration.id})).status,409);
+assert.ok(db.prepare("SELECT user_id FROM members WHERE email='one@example.com'").get());
+assert.equal(db.prepare("SELECT count(*) n FROM registrations WHERE event_id=? AND status='registered'").get(liveEvent.id).n,0);
+const reapply={action:'register',eventId:liveEvent.id,firstName:'Test',lastName:'Member',studentId:'123',email:'one@example.com',membershipConfirmed:'on'};
+assert.equal((await call('/api/community','one@example.com',reapply)).status,200);
+assert.equal((await call('/api/community','admin@example.com',{action:'approve',id:signup.j.registration.id})).status,200);
+assert.equal((await call('/api/community','one@example.com',{action:'register',eventId:liveEvent.id,cancel:true})).status,200);
+cancelledPlace=(await call('/api/community?admin=1','admin@example.com')).j.attendees.find(r=>r.id===signup.j.registration.id);assert.equal(cancelledPlace.cancelledBy,'member');assert.equal(cancelledPlace.status,'cancelled');
+assert.equal((await call('/api/community','one@example.com',reapply)).status,200);
+assert.equal((await call('/api/community','one@example.com')).j.registrations.find(r=>r.id===signup.j.registration.id).cancelledBy,'');
 // Preview lowers privileges, never impersonates another account, and blocks mutations.
 assert.equal((await call('/api/member-preview','one@example.com',{active:true})).status,403);
 assert.equal((await call('/api/member-preview','admin@example.com')).j.eligible,true);

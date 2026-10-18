@@ -1,7 +1,8 @@
 import {rawDb} from './database.mjs';
+import {addWelcomeArticle} from './welcome-article.mjs';
 import {existsSync} from 'node:fs';
 import {spawn} from 'node:child_process';
-rawDb();
+addWelcomeArticle(rawDb());
 const standalone=existsSync('server.js')?'server.js':'.next/standalone/server.js';
 const proc=spawn(process.execPath,[standalone],{stdio:'inherit',env:{...process.env,HOSTNAME:'0.0.0.0'}});
 const worker=spawn(process.execPath,['scripts/mail-worker.mjs'],{stdio:'inherit',env:process.env});

@@ -26,5 +26,21 @@ assert.equal((await call('/api/community','two@example.com',{action:'cancel-even
 await call('/api/community','admin@example.com',{action:'cancel-event',id:ev.id});await call('/api/community','admin@example.com',{action:'cancel-event',id:ev.id});queued=db.prepare("SELECT * FROM mail_queue WHERE event_kind='cancelled'").all();assert.equal(queued.length,1);assert.equal(queued[0].email,'one@example.com');assert.equal((await call('/api/community','admin@example.com',{action:'approve',id:'two'})).status,403);
 assert.equal(db.prepare("SELECT count(*) n FROM mail_queue WHERE registration_id='two'").get().n,0);
 for(let i=0;i<30&&deliveries.length<4;i++)await new Promise(r=>setTimeout(r,100));assert.ok(deliveries.some(m=>m.to==='office@example.com'));assert.ok(deliveries.some(m=>m.to==='one@example.com'&&m.kind==='notification'));assert.equal((await call('/api/community?admin=1','two@example.com')).status,403);
+// Reading chat clears its notifications; a later message creates a genuinely new unread item.
+let thread=(await call('/api/chat','one@example.com')).j.entries;
+await call('/api/chat','one@example.com',{action:'read',ids:thread.map(m=>m.id)});
+let notices=(await call('/api/notifications','one@example.com')).j;
+assert.equal(notices.unreadMessages,0);assert.ok(notices.items.filter(n=>n.category==='messages').every(n=>n.read_at));
+await call('/api/chat','admin@example.com',{userId:'email:one@example.com',body:'A genuinely new reply'});
+notices=(await call('/api/notifications','one@example.com')).j;
+assert.equal(notices.unreadMessages,1);assert.equal(notices.items.filter(n=>n.category==='messages'&&!n.read_at).length,1);
+// A stale read receipt must not clear the notification for an unseen new message.
+await call('/api/chat','one@example.com',{action:'read',ids:thread.map(m=>m.id)});
+assert.equal((await call('/api/notifications','one@example.com')).j.items.filter(n=>n.category==='messages'&&!n.read_at).length,1);
+thread=(await call('/api/chat','one@example.com')).j.entries;
+await call('/api/chat','one@example.com',{action:'read',ids:thread.map(m=>m.id)});
+assert.equal((await call('/api/notifications','one@example.com')).j.items.filter(n=>n.category==='messages'&&!n.read_at).length,0);
+await call('/api/notifications','one@example.com',{});
+assert.ok((await call('/api/notifications','one@example.com')).j.items.every(n=>n.read_at));
 console.log('PASS: chat privacy, multi-message history, notification ownership, membership review, approved-only event confirmation, changes, cancellation deduplication and mail relay.');
 }finally{server.kill('SIGTERM');relay.close();db.close();rmSync(dir,{recursive:true,force:true})}

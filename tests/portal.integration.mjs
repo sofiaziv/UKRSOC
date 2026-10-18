@@ -63,6 +63,20 @@ assert.equal((await call('/api/community','one@example.com')).j.registrations[0]
 assert.equal((await call('/api/community','one@example.com',reapply)).j.registration.status,'registered');
 assert.equal(db.prepare("SELECT sum(1+guest_count) n FROM registrations WHERE event_id=? AND status='registered'").get(liveEvent.id).n,3);
 assert.ok(db.prepare("SELECT body FROM mail_queue WHERE registration_id=? AND body LIKE '%2 guest(s)%'").get(party.j.registration.id));
+// Guest amendments preserve the host and approved places until an extra request is approved.
+const partyId=party.j.registration.id;
+assert.equal((await call('/api/community','admin@example.com',{action:'update-guests',id:partyId,guestCount:3})).status,409);
+assert.equal((await call('/api/community','one@example.com',{action:'update-guests',id:partyId,guestCount:3})).j.pendingGuestApproval,true);
+let amended=db.prepare('SELECT * FROM registrations WHERE id=?').get(partyId);assert.equal(amended.guest_count,2);assert.equal(amended.status,'registered');assert.equal(amended.requested_guest_count,3);
+assert.equal((await call('/api/community','admin@example.com',{action:'review-guests',id:partyId,decision:'approve'})).status,409);
+await call('/api/community','admin@example.com',{...event,action:'edit-event',id:liveEvent.id,capacity:4});
+assert.equal((await call('/api/community','admin@example.com',{action:'review-guests',id:partyId,decision:'approve'})).status,200);
+assert.equal((await call('/api/community','admin@example.com',{action:'review-guests',id:partyId,decision:'approve'})).status,409);
+assert.equal((await call('/api/community','one@example.com',{action:'update-guests',id:partyId,guestCount:1})).status,200);
+amended=db.prepare('SELECT * FROM registrations WHERE id=?').get(partyId);assert.equal(amended.guest_count,1);assert.equal(amended.status,'registered');assert.equal(amended.requested_guest_count,null);
+await call('/api/community','one@example.com',{action:'update-guests',id:partyId,guestCount:2});
+assert.equal((await call('/api/community','admin@example.com',{action:'review-guests',id:partyId,decision:'decline'})).status,200);
+assert.equal(db.prepare('SELECT guest_count FROM registrations WHERE id=?').get(partyId).guest_count,1);
 // Preview lowers privileges, never impersonates another account, and blocks mutations.
 assert.equal((await call('/api/member-preview','one@example.com',{active:true})).status,403);
 assert.equal((await call('/api/member-preview','admin@example.com')).j.eligible,true);

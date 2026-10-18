@@ -1,8 +1,8 @@
 import {createHash,randomUUID} from 'node:crypto';
 import {rawDb} from '../scripts/database.mjs';
 const base=()=>process.env.APP_URL||'';
-export function notify(email:string,title:string,body:string,href:string,key?:string){
- const id=key||randomUUID(),db=rawDb(),now=new Date().toISOString(),category=href.startsWith('/chat')?'messages':/membership|profile/i.test(title)?'account':'updates';
+export function notify(email:string,title:string,body:string,href:string,key?:string,categoryOverride?:string){
+ const id=key||randomUUID(),db=rawDb(),now=new Date().toISOString(),category=categoryOverride||(href.startsWith('/chat')?'messages':/membership|profile/i.test(title)?'account':'updates');
  db.prepare('INSERT OR IGNORE INTO notifications(id,email,title,body,href,created,category) VALUES(?,?,?,?,?,?,?)').run(id,email.toLowerCase(),title,body,href,now,category);
  db.prepare('INSERT OR IGNORE INTO mail_queue(id,email,title,body,href,created,category) VALUES(?,?,?,?,?,?,?)').run(id,email.toLowerCase(),title,body,href,now,category);
 }

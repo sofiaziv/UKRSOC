@@ -28,5 +28,5 @@ export default function ScrollSunflower() {
     motion.addEventListener('change',schedule);
     return()=>{cancelAnimationFrame(frame);window.removeEventListener('scroll',schedule);window.removeEventListener('resize',schedule);motion.removeEventListener('change',schedule)};
   },[]);
-  return <div ref={ref} className="scroll-sunflower"><img src="/sunflower-ink.png" width="1024" height="1536" alt="Botanical sunflower drawn in black ink" fetchPriority="high"/></div>;
+  return <div ref={ref} className="scroll-sunflower"><img src="/sunflower-ink.webp" width="1024" height="1536" alt="Botanical sunflower drawn in black ink" fetchPriority="high"/></div>;
 }

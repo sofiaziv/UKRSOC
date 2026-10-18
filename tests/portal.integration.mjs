@@ -55,7 +55,10 @@ assert.equal((await call('/api/community','one@example.com',{...reapply,comingWi
 assert.equal((await call('/api/community','one@example.com',{...reapply,comingWithSomeone:'yes',guestCount:1.5})).status,400);
 assert.equal((await call('/api/community','one@example.com',{...reapply,comingWithSomeone:'yes',guestCount:21})).status,400);
 const party=await call('/api/community','one@example.com',{...reapply,comingWithSomeone:'yes',guestCount:2});assert.equal(party.status,200);assert.equal(party.j.registration.guestCount,2);
-const duplicate=await call('/api/community','one@example.com',{...reapply,comingWithSomeone:'yes',guestCount:8});assert.equal(duplicate.j.registration.id,party.j.registration.id);assert.equal(duplicate.j.registration.guestCount,2);
+const signupEmailsBefore=db.prepare("SELECT count(*) n FROM mail_queue WHERE title LIKE 'New event application:%'").get().n;
+const duplicate=await call('/api/community','one@example.com',{...reapply,comingWithSomeone:'yes',guestCount:8});assert.equal(duplicate.j.registration.id,party.j.registration.id);assert.equal(duplicate.j.registration.guestCount,2);assert.equal(db.prepare("SELECT count(*) n FROM mail_queue WHERE title LIKE 'New event application:%'").get().n,signupEmailsBefore);
+assert.ok(db.prepare("SELECT body FROM mail_queue WHERE title LIKE 'New event application:%' AND category='events' AND body LIKE '%Guests: 2%'").get()?.body.includes('one@example.com'));
+
 assert.equal(db.prepare('SELECT count(*) n FROM registrations WHERE event_id=? AND lower(email)=?').get(liveEvent.id,'one@example.com').n,1);
 await call('/api/community','admin@example.com',{...event,action:'edit-event',id:liveEvent.id,capacity:2});
 assert.equal((await call('/api/community','admin@example.com',{action:'approve',id:party.j.registration.id})).status,409);

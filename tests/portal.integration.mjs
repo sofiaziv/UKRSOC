@@ -99,5 +99,11 @@ assert.equal((await call('/api/notifications',null,null,previewCookie)).j.admin,
 assert.equal((await call('/api/member-preview',null,{active:false},previewCookie)).status,200);
 assert.equal((await call('/api/community','admin@example.com')).j.admin,true);
 const forged='rhul_session='+tokens['one@example.com']+'; '+previewSwitch.cookie.split(';')[0];assert.equal((await call('/api/member-preview',null,null,forged)).j.active,false);
+// Published past events remain member-only and cannot accept new applications.
+await call('/api/community','admin@example.com',{...event,title:'PRIVATE PAST EVENT',date:'2026-01-01T18:00:00Z'});
+const pastEvent=(await call('/api/community','one@example.com')).j.events.find(e=>e.title==='PRIVATE PAST EVENT');assert.ok(pastEvent);
+assert.equal((await call('/api/community')).j.events.length,0);
+assert.equal((await call('/api/community','one@example.com',{...reapply,eventId:pastEvent.id})).status,400);
+const archive=await fetch(base+'/events/past');assert.equal(archive.status,200);const archiveHtml=await archive.text();assert.ok(!archiveHtml.includes('PRIVATE PAST EVENT'));assert.ok(archiveHtml.includes('MEMBERS-ONLY CALENDAR'));
 console.log('PASS: calendar exports and isolation, optional email preferences with essential mail preserved, delivery permissions; private calendar and posters, all membership roles, account controls, initiated chat/unread, anonymous engagement/moderation, opt-in/confirm/unsubscribe and first-publish-only newsletter.');
 }finally{server.kill('SIGTERM');relay.close();db.close();rmSync(dir,{recursive:true,force:true})}
